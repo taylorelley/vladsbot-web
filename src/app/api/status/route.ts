@@ -98,10 +98,32 @@ async function callOpenClawTool(
     throw new Error(result.error?.message || "Tool invocation failed");
   }
   
+  // Extract output text
+  let outputText = "";
+  let sessionsData = undefined;
+  
+  if (result.result?.content?.[0]?.text) {
+    outputText = result.result.content[0].text;
+    
+    // For sessions_list, parse the JSON response
+    if (tool === "sessions_list") {
+      try {
+        const parsed = JSON.parse(outputText);
+        sessionsData = parsed.sessions;
+      } catch (e) {
+        console.error("Failed to parse sessions_list response:", e);
+      }
+    }
+  } else if (typeof result.result === "string") {
+    outputText = result.result;
+  } else {
+    outputText = JSON.stringify(result.result);
+  }
+  
   return {
     status: "success",
-    output: typeof result.result === "string" ? result.result : JSON.stringify(result.result),
-    sessions: result.result?.sessions,
+    output: outputText,
+    sessions: sessionsData,
   };
 }
 
@@ -138,27 +160,30 @@ export async function GET() {
     if (sessionsResponse.sessions) {
       for (const session of sessionsResponse.sessions) {
         // Filter for sub-agent sessions by key pattern (kind is "other", not "isolated")
-        if (session.sessionKey && session.sessionKey.includes(":subagent:")) {
-          // Calculate context from session (simplified - would need actual session status call)
+        const sessionKey = session.key || session.sessionKey;
+        if (sessionKey && sessionKey.includes(":subagent:")) {
+          // Calculate uptime from updatedAt
           const now = new Date();
-          const lastActivity = session.lastMessage?.timestamp
-            ? new Date(session.lastMessage.timestamp)
-            : now;
-          const uptimeMs = now.getTime() - lastActivity.getTime();
-          const uptimeMinutes = Math.floor(uptimeMs / 60000);
+          const updatedAt = session.updatedAt ? new Date(session.updatedAt) : now;
+          const uptimeMs = now.getTime() - updatedAt.getTime();
+          const uptimeSeconds = Math.floor(uptimeMs / 1000);
+          const uptimeMinutes = Math.floor(uptimeSeconds / 60);
+          
+          // Format uptime
+          let uptimeStr = uptimeMinutes > 0 ? `${uptimeMinutes}m` : `${uptimeSeconds}s`;
 
           subAgents.push({
-            sessionKey: session.sessionKey,
-            label: session.label,
+            sessionKey: sessionKey,
+            label: session.label || "Unnamed Sub-Agent",
             agentId: session.agentId,
             kind: session.kind,
-            contextUsed: 0, // Would need individual session_status call
-            contextTotal: 200000,
-            contextPercent: 0,
-            uptime: `${uptimeMinutes}m`,
-            lastActivity: session.lastMessage?.timestamp || now.toISOString(),
-            status: uptimeMinutes < 5 ? "active" : "idle",
-            task: session.label,
+            contextUsed: session.totalTokens || 0,
+            contextTotal: session.contextTokens || 200000,
+            contextPercent: session.contextTokens ? Math.round(((session.totalTokens || 0) / session.contextTokens) * 100) : 0,
+            uptime: uptimeStr,
+            lastActivity: session.updatedAt ? new Date(session.updatedAt).toISOString() : now.toISOString(),
+            status: uptimeSeconds < 300 ? "active" : "idle", // Active if updated in last 5 min
+            task: session.label || "Running",
           });
         }
       }
