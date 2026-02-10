@@ -78,26 +78,45 @@ async function callOpenClawTool(
   tool: string,
   params: Record<string, unknown> = {}
 ): Promise<OpenClawStatusResponse> {
-  const response = await fetch(`${GATEWAY_URL}/api/v1/chat`, {
+  const toolName = tool === "session_status" ? "session_status" : tool;
+  const message = tool === "session_status" 
+    ? "📊 session_status" 
+    : `Use the ${tool} tool${Object.keys(params).length > 0 ? ` with params: ${JSON.stringify(params)}` : ""}`;
+
+  const response = await fetch(`${GATEWAY_URL}/v1/responses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${GATEWAY_TOKEN}`,
+      "x-openclaw-agent-id": "main",
     },
     body: JSON.stringify({
-      message: `Call tool: ${tool}`,
-      toolCall: {
-        name: tool,
-        parameters: params,
-      },
+      model: "openclaw:main",
+      input: [
+        {
+          type: "message",
+          role: "user",
+          content: message,
+        },
+      ],
+      stream: false,
     }),
   });
 
   if (!response.ok) {
-    throw new Error(`OpenClaw API error: ${response.statusText}`);
+    const error = await response.text();
+    throw new Error(`OpenClaw API error: ${response.statusText} - ${error}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  
+  // Extract the text from OpenResponses format
+  const outputText = result.output?.[0]?.content?.[0]?.text || "";
+  
+  return {
+    status: result.status,
+    output: outputText,
+  };
 }
 
 export async function GET() {
