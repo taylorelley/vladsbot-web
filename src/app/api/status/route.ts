@@ -8,10 +8,14 @@ interface OpenClawStatusResponse {
   status: string;
   output?: string;
   sessions?: Array<{
-    sessionKey: string;
+    key: string;
+    sessionKey?: string;
     label?: string;
     agentId?: string;
     kind: string;
+    updatedAt?: number;
+    totalTokens?: number;
+    contextTokens?: number;
     lastMessage?: {
       timestamp: string;
     };
