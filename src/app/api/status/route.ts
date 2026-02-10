@@ -109,9 +109,10 @@ export async function GET() {
   try {
     // Fetch main session status
     const statusResponse = await callOpenClawTool("session_status");
+    // Note: Sub-agents are classified as kind:"other", not "isolated"
+    // We'll filter client-side by session key pattern instead
     const sessionsResponse = await callOpenClawTool("sessions_list", {
-      kinds: ["isolated"],
-      limit: 20,
+      limit: 50,
       messageLimit: 1,
     });
 
@@ -136,7 +137,8 @@ export async function GET() {
     const subAgents: SubAgentStatus[] = [];
     if (sessionsResponse.sessions) {
       for (const session of sessionsResponse.sessions) {
-        if (session.kind === "isolated") {
+        // Filter for sub-agent sessions by key pattern (kind is "other", not "isolated")
+        if (session.sessionKey && session.sessionKey.includes(":subagent:")) {
           // Calculate context from session (simplified - would need actual session status call)
           const now = new Date();
           const lastActivity = session.lastMessage?.timestamp
