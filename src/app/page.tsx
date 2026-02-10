@@ -48,9 +48,11 @@ export default function HomePage() {
       <Header onToggleStatus={() => setIsStatusOpen(!isStatusOpen)} />
       <div 
         className="flex-1 max-w-4xl mx-auto w-full overflow-hidden transition-all duration-300"
-        style={{
-          marginRight: isStatusPinned && isStatusOpen ? '320px' : '0',
-        }}
+        style={
+          isStatusPinned && isStatusOpen 
+            ? { marginRight: '320px' } 
+            : undefined
+        }
       >
         <Chat />
       </div>
