@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { StatusResponse } from "@/types/status";
-import { X, Activity, Cpu, Clock, Zap, ChevronRight, Bot } from "lucide-react";
+import { X, Activity, Cpu, Clock, Zap, ChevronRight, Bot, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StatusSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isPinned: boolean;
+  onTogglePin: () => void;
 }
 
-export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
+export function StatusSidebar({ isOpen, onClose, isPinned, onTogglePin }: StatusSidebarProps) {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,8 +40,8 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
 
   return (
     <>
-      {/* Backdrop */}
-      {isOpen && (
+      {/* Backdrop (only show when not pinned and on mobile) */}
+      {isOpen && !isPinned && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
@@ -50,8 +52,9 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
       <aside
         className={cn(
           "fixed right-0 top-0 h-full w-80 glass-panel rounded-none border-y-0 border-r-0",
-          "transform transition-transform duration-300 ease-in-out z-50",
+          "transform transition-transform duration-300 ease-in-out",
           "flex flex-col",
+          isPinned ? "z-30" : "z-50",
           isOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -61,12 +64,26 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
             <Activity className="w-4 h-4 text-primary" />
             Session Status
           </h2>
-          <button
-            onClick={onClose}
-            className="glass-button-secondary rounded-lg p-2 hover:bg-white/10"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onTogglePin}
+              className={cn(
+                "glass-button-secondary rounded-lg p-2 hover:bg-white/10 transition-colors",
+                isPinned && "bg-primary/20 text-primary"
+              )}
+              title={isPinned ? "Unpin sidebar" : "Pin sidebar"}
+            >
+              <Pin className={cn("w-4 h-4 transition-transform", isPinned && "rotate-45")} />
+            </button>
+            {!isPinned && (
+              <button
+                onClick={onClose}
+                className="glass-button-secondary rounded-lg p-2 hover:bg-white/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -128,23 +145,14 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
                   </p>
                 </div>
 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Zap className="w-3 h-3 text-muted-foreground" />
-                    <div>
-                      <p className="text-muted-foreground">Thinking</p>
-                      <p className="font-medium capitalize">
-                        {status.mainSession.thinking}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <div>
-                      <p className="text-muted-foreground">Uptime</p>
-                      <p className="font-medium">{status.mainSession.uptime}</p>
-                    </div>
+                {/* Metrics */}
+                <div className="flex items-center gap-2 text-xs pt-2">
+                  <Zap className="w-3 h-3 text-muted-foreground" />
+                  <div>
+                    <p className="text-muted-foreground">Thinking</p>
+                    <p className="font-medium capitalize">
+                      {status.mainSession.thinking}
+                    </p>
                   </div>
                 </div>
               </div>
