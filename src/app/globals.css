@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+:root {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+
+  --primary: 350 89% 60%; /* Vibrant Rose/Red */
+  --primary-foreground: 210 40% 98%;
+
+  --secondary: 215 25% 27%;
+  --secondary-foreground: 210 40% 98%;
+
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 75%;
+
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 350 89% 60%;
+
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Ensure container is centered and padded */
+.container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+}
+
+body {
+  @apply bg-background text-foreground min-h-screen antialiased;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(225, 29, 72, 0.12), transparent 45%),
+    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.12), transparent 45%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  @apply rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-2xl shadow-2xl;
+  background-image: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+}
+
+.glass-card {
+  @apply relative rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-md shadow-lg transition-all duration-300;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.6));
+}
+
+.glass-card:hover {
+  @apply border-white/10 shadow-xl;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.5), rgba(15, 23, 42, 0.7));
+}
+
+.glass-input {
+  @apply bg-slate-950/30 border-white/10 text-slate-100 placeholder:text-slate-500 focus-visible:ring-primary/50 focus-visible:border-primary/50 backdrop-blur-sm transition-all;
+}
+
+.glass-button-primary {
+  @apply bg-primary text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:bg-primary/90 transition-all duration-300 border border-white/10 relative overflow-hidden;
+}
+
+.glass-button-secondary {
+  @apply bg-slate-800/50 text-white shadow-md hover:bg-slate-700/50 hover:text-white transition-all duration-300 border border-white/5 backdrop-blur-md;
+}
+
+.glass-mini-card {
+  @apply rounded-lg border border-white/5 bg-slate-900/30 backdrop-blur-sm shadow-md;
+}
+
+/* Chat message styling */
+.message-user {
+  @apply bg-primary/20 border-primary/30;
+}
+
+.message-assistant {
+  @apply bg-slate-800/40 border-slate-700/30;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Typing indicator animation */
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1); }
+}
+
+.typing-dot {
+  animation: typing 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Mobile-flush: strip card chrome on small screens */
+@media (max-width: 767px) {
+  .mobile-flush {
+    padding-inline: 1rem;
+  }
+
+  .mobile-flush .glass-panel {
+    background: transparent;
+    background-image: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
