@@ -7,10 +7,6 @@ const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || "";
 interface OpenClawStatusResponse {
   status: string;
   output?: string;
-}
-
-interface OpenClawSessionsListResponse {
-  status: string;
   sessions?: Array<{
     sessionKey: string;
     label?: string;
@@ -78,28 +74,16 @@ async function callOpenClawTool(
   tool: string,
   params: Record<string, unknown> = {}
 ): Promise<OpenClawStatusResponse> {
-  const toolName = tool === "session_status" ? "session_status" : tool;
-  const message = tool === "session_status" 
-    ? "📊 session_status" 
-    : `Use the ${tool} tool${Object.keys(params).length > 0 ? ` with params: ${JSON.stringify(params)}` : ""}`;
-
-  const response = await fetch(`${GATEWAY_URL}/v1/responses`, {
+  const response = await fetch(`${GATEWAY_URL}/tools/invoke`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${GATEWAY_TOKEN}`,
-      "x-openclaw-agent-id": "main",
     },
     body: JSON.stringify({
-      model: "openclaw:main",
-      input: [
-        {
-          type: "message",
-          role: "user",
-          content: message,
-        },
-      ],
-      stream: false,
+      tool,
+      args: params,
+      sessionKey: "main",
     }),
   });
 
@@ -110,12 +94,14 @@ async function callOpenClawTool(
 
   const result = await response.json();
   
-  // Extract the text from OpenResponses format
-  const outputText = result.output?.[0]?.content?.[0]?.text || "";
+  if (!result.ok) {
+    throw new Error(result.error?.message || "Tool invocation failed");
+  }
   
   return {
-    status: result.status,
-    output: outputText,
+    status: "success",
+    output: typeof result.result === "string" ? result.result : JSON.stringify(result.result),
+    sessions: result.result?.sessions,
   };
 }
 
@@ -123,11 +109,11 @@ export async function GET() {
   try {
     // Fetch main session status
     const statusResponse = await callOpenClawTool("session_status");
-    const sessionsList = await callOpenClawTool("sessions_list", {
+    const sessionsResponse = await callOpenClawTool("sessions_list", {
       kinds: ["isolated"],
       limit: 20,
       messageLimit: 1,
-    }) as OpenClawSessionsListResponse;
+    });
 
     // Parse main session status
     const statusOutput = statusResponse.output || "";
@@ -148,8 +134,8 @@ export async function GET() {
 
     // Parse sub-agents
     const subAgents: SubAgentStatus[] = [];
-    if (sessionsList.sessions) {
-      for (const session of sessionsList.sessions) {
+    if (sessionsResponse.sessions) {
+      for (const session of sessionsResponse.sessions) {
         if (session.kind === "isolated") {
           // Calculate context from session (simplified - would need actual session status call)
           const now = new Date();
