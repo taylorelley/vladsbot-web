@@ -147,21 +147,6 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
                     </div>
                   </div>
                 </div>
-
-                {/* Token Usage */}
-                <div className="pt-2 border-t border-white/5">
-                  <p className="text-xs text-muted-foreground mb-1">Tokens</p>
-                  <div className="flex gap-4 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">In: </span>
-                      <span className="font-mono">{status.mainSession.tokensIn}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Out: </span>
-                      <span className="font-mono">{status.mainSession.tokensOut}</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* Sub-Agents */}
