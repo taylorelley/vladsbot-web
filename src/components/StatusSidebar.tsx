@@ -51,7 +51,7 @@ export function StatusSidebar({ isOpen, onClose, isPinned, onTogglePin }: Status
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed right-0 top-0 h-full w-80 glass-panel rounded-none border-y-0 border-r-0",
+          "fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 glass-panel rounded-none border-y-0 border-r-0 border-l",
           "transform transition-transform duration-300 ease-in-out",
           "flex flex-col",
           isPinned ? "z-30" : "z-50",
