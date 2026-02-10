@@ -202,23 +202,34 @@ export function StatusSidebar({ isOpen, onClose }: StatusSidebarProps) {
                         />
                       </div>
 
-                      {/* Context Bar (if available) */}
-                      {agent.contextPercent > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Context</span>
-                            <span className="font-mono">
-                              {agent.contextPercent}%
-                            </span>
-                          </div>
-                          <div className="h-1.5 bg-black/30 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all duration-500"
-                              style={{ width: `${agent.contextPercent}%` }}
-                            />
-                          </div>
+                      {/* Context Bar (always show for sub-agents) */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Context</span>
+                          <span className="font-mono">
+                            {agent.contextPercent}%
+                          </span>
                         </div>
-                      )}
+                        <div className="h-1.5 bg-black/30 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full transition-all duration-500",
+                              agent.contextPercent < 50
+                                ? "bg-green-500"
+                                : agent.contextPercent < 75
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            )}
+                            style={{ width: `${agent.contextPercent}%` }}
+                          />
+                        </div>
+                        {agent.contextUsed > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round(agent.contextUsed / 1000)}k /{" "}
+                            {Math.round(agent.contextTotal / 1000)}k tokens
+                          </p>
+                        )}
+                      </div>
 
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>Runtime: {agent.uptime}</span>
