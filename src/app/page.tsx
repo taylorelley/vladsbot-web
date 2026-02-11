@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Chat } from "@/components/Chat";
-import { AgentActivityPanel } from "@/components/AgentActivityPanel";
+import { A2UISidebar } from "@/components/a2ui/A2UISidebar";
+import { FloatingA2UI } from "@/components/a2ui/A2UIRenderer";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
@@ -46,7 +47,7 @@ export default function HomePage() {
         isActivityOpen={isActivityOpen}
       />
       <div className="flex-1 flex overflow-hidden">
-        <AgentActivityPanel isOpen={isActivityOpen} />
+        <A2UISidebar isOpen={isActivityOpen} />
         <div 
           className={cn(
             "flex-1 transition-all duration-300 ease-in-out",
@@ -58,6 +59,8 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      {/* Floating A2UI Components */}
+      <FloatingA2UI />
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { Message } from "@/types/chat";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { Bot } from "lucide-react";
+import { A2UIRenderer } from "./a2ui/A2UIRenderer";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
@@ -148,9 +149,13 @@ export function Chat() {
             </div>
           </div>
         ) : (
-          messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))
+          <>
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {/* A2UI Components */}
+            <A2UIRenderer location="chat" />
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
