@@ -90,19 +90,22 @@ export function Chat() {
 
     // Group components by the message they belong to
     const componentsByMessage = new Map<number, A2UIComponentState[]>();
+    const assignedComponents = new Set<string>(); // Track which components are assigned
     
     components.forEach((comp) => {
       const compTime = comp.timestamp || Date.now();
       
-      // If there's a streaming assistant message and this component was created after it,
+      // If there's a streaming/recent assistant message and this component was created after it,
       // attach to the assistant message (it's part of the response)
       if (lastAssistantIndex >= 0 && compTime >= lastAssistantTime) {
         if (!componentsByMessage.has(lastAssistantTime)) {
           componentsByMessage.set(lastAssistantTime, []);
         }
         componentsByMessage.get(lastAssistantTime)!.push(comp);
-      } else {
-        // Otherwise, find the most recent completed message before this component
+        assignedComponents.add(comp.id);
+      } else if (!assignedComponents.has(comp.id)) {
+        // Only assign to an older message if not already assigned
+        // Find the most recent completed message before this component
         let messageIndex = -1;
         for (let i = messages.length - 1; i >= 0; i--) {
           if (messages[i].timestamp.getTime() <= compTime) {
@@ -117,6 +120,7 @@ export function Chat() {
             componentsByMessage.set(msgTime, []);
           }
           componentsByMessage.get(msgTime)!.push(comp);
+          assignedComponents.add(comp.id);
         }
       }
     });
