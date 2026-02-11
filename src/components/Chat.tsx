@@ -77,36 +77,46 @@ export function Chat() {
       | { type: "message"; data: Message; timestamp: number; components: A2UIComponentState[] }
     > = [];
 
-    // Group components by the message they should appear after
-    // Components go after the most recent message at time of creation
+    // Find the last assistant message that might be streaming
+    let lastAssistantIndex = -1;
+    let lastAssistantTime = 0;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") {
+        lastAssistantIndex = i;
+        lastAssistantTime = messages[i].timestamp.getTime();
+        break;
+      }
+    }
+
+    // Group components by the message they belong to
     const componentsByMessage = new Map<number, A2UIComponentState[]>();
     
     components.forEach((comp) => {
       const compTime = comp.timestamp || Date.now();
       
-      // Find the most recent message before this component
-      let messageIndex = -1;
-      for (let i = messages.length - 1; i >= 0; i--) {
-        if (messages[i].timestamp.getTime() <= compTime) {
-          messageIndex = i;
-          break;
+      // If there's a streaming assistant message and this component was created after it,
+      // attach to the assistant message (it's part of the response)
+      if (lastAssistantIndex >= 0 && compTime >= lastAssistantTime) {
+        if (!componentsByMessage.has(lastAssistantTime)) {
+          componentsByMessage.set(lastAssistantTime, []);
         }
-      }
-      
-      if (messageIndex >= 0) {
-        const msgTime = messages[messageIndex].timestamp.getTime();
-        if (!componentsByMessage.has(msgTime)) {
-          componentsByMessage.set(msgTime, []);
-        }
-        componentsByMessage.get(msgTime)!.push(comp);
+        componentsByMessage.get(lastAssistantTime)!.push(comp);
       } else {
-        // Component before any message - attach to first message if exists
-        if (messages.length > 0) {
-          const firstMsgTime = messages[0].timestamp.getTime();
-          if (!componentsByMessage.has(firstMsgTime)) {
-            componentsByMessage.set(firstMsgTime, []);
+        // Otherwise, find the most recent completed message before this component
+        let messageIndex = -1;
+        for (let i = messages.length - 1; i >= 0; i--) {
+          if (messages[i].timestamp.getTime() <= compTime) {
+            messageIndex = i;
+            break;
           }
-          componentsByMessage.get(firstMsgTime)!.push(comp);
+        }
+        
+        if (messageIndex >= 0) {
+          const msgTime = messages[messageIndex].timestamp.getTime();
+          if (!componentsByMessage.has(msgTime)) {
+            componentsByMessage.set(msgTime, []);
+          }
+          componentsByMessage.get(msgTime)!.push(comp);
         }
       }
     });
