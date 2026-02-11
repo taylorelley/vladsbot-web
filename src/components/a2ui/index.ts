@@ -4,6 +4,7 @@
 export { A2UIComponentWrapper, A2UIActionButton, A2UIActions } from "./A2UIComponentWrapper";
 export { componentRegistry, DynamicComponent, registerComponent, useComponentRegistry } from "./A2UIRegistry";
 export { A2UISidebar, A2UISidebarToggle } from "./A2UISidebar";
+export { A2UIRenderer, ChatA2UI, FloatingA2UI } from "./A2UIRenderer";
 
 // Interactive Components
 export { Card, StandaloneCard } from "./Card";
