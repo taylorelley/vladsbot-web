@@ -46,14 +46,6 @@ export function A2UIRenderer({ location, className, onAction }: A2UIRendererProp
   // Handle incoming action and forward to parent
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
-      // Show immediate feedback toast
-      showToast({
-        type: "success",
-        title: "Action received",
-        message: `Processing: ${event.action}`,
-        duration: 2000,
-      });
-
       // Send action to backend
       fetch("/api/a2ui/action", {
         method: "POST",
@@ -212,14 +204,6 @@ interface ChatA2UIProps {
 export function ChatA2UI({ messageId, components, className, onAction }: ChatA2UIProps) {
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
-      // Show immediate feedback toast
-      showToast({
-        type: "success",
-        title: "Action received",
-        message: `Processing: ${event.action}`,
-        duration: 2000,
-      });
-
       // Send action to backend
       fetch("/api/a2ui/action", {
         method: "POST",
@@ -306,14 +290,6 @@ export function FloatingA2UI({ className, onAction }: FloatingA2UIProps) {
 
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
-      // Show immediate feedback toast
-      showToast({
-        type: "success",
-        title: "Action received",
-        message: `Processing: ${event.action}`,
-        duration: 2000,
-      });
-
       fetch("/api/a2ui/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

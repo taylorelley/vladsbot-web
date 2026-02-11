@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Message } from "@/types/chat";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { Bot } from "lucide-react";
-import { A2UIRenderer } from "./a2ui/A2UIRenderer";
+import { A2UIComponentState } from "@/types/a2ui";
+import { DynamicComponent } from "./a2ui/A2UIRegistry";
+import { showToast } from "./a2ui/Toast";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
@@ -14,15 +16,95 @@ function generateId(): string {
 export function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [components, setComponents] = useState<A2UIComponentState[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  // Listen for A2UI components via SSE
+  useEffect(() => {
+    const eventSource = new EventSource("/api/a2ui/events");
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === "component.render" || message.type === "component.update") {
+          const component = message.data as A2UIComponentState;
+          // Only show chat location components
+          if (component.location === "chat") {
+            setComponents((prev) => {
+              const existing = prev.findIndex((c) => c.id === component.id);
+              if (existing >= 0) {
+                const updated = [...prev];
+                updated[existing] = component;
+                return updated;
+              }
+              return [...prev, component];
+            });
+          }
+        } else if (message.type === "component.remove") {
+          const { componentId } = message.data;
+          setComponents((prev) => prev.filter((c) => c.id !== componentId));
+        }
+      } catch (err) {
+        console.error("A2UI SSE parse error:", err);
+      }
+    };
+
+    // Initial fetch of components
+    fetch("/api/a2ui/render?location=chat")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.components) {
+          setComponents(data.data.components);
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
+  // Create unified timeline of messages and components
+  const timeline = useMemo(() => {
+    const items: Array<
+      | { type: "message"; data: Message; timestamp: number }
+      | { type: "component"; data: A2UIComponentState; timestamp: number }
+    > = [];
+
+    // Add messages
+    messages.forEach((msg) => {
+      items.push({
+        type: "message",
+        data: msg,
+        timestamp: msg.timestamp.getTime(),
+      });
+    });
+
+    // Add components
+    components.forEach((comp) => {
+      items.push({
+        type: "component",
+        data: comp,
+        timestamp: comp.timestamp || Date.now(),
+      });
+    });
+
+    // Sort by timestamp
+    items.sort((a, b) => a.timestamp - b.timestamp);
+
+    return items;
+  }, [messages, components]);
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [timeline, scrollToBottom]);
 
   const sendMessage = async (content: string) => {
     const userMessage: Message = {
@@ -149,13 +231,44 @@ export function Chat() {
             </div>
           </div>
         ) : (
-          <>
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-            {/* A2UI Components */}
-            <A2UIRenderer location="chat" />
-          </>
+          timeline.map((item, index) =>
+            item.type === "message" ? (
+              <ChatMessage key={item.data.id} message={item.data} />
+            ) : (
+              <div key={item.data.id} className="my-4">
+                <DynamicComponent
+                  component={item.data}
+                  onAction={(event) => {
+                    // Handle component actions with toast feedback
+                    fetch("/api/a2ui/action", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(event),
+                    })
+                      .then((res) => {
+                        if (res.ok) {
+                          showToast({
+                            type: "success",
+                            message: "Action completed successfully",
+                            duration: 2000,
+                          });
+                        } else {
+                          throw new Error("Action failed");
+                        }
+                      })
+                      .catch((err) => {
+                        showToast({
+                          type: "error",
+                          title: "Action failed",
+                          message: err.message || "Failed to process action",
+                          duration: 3000,
+                        });
+                      });
+                  }}
+                />
+              </div>
+            )
+          )
         )}
         <div ref={messagesEndRef} />
       </div>
