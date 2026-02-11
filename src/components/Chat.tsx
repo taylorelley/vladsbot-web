@@ -74,30 +74,55 @@ export function Chat() {
   // Create unified timeline of messages and components
   const timeline = useMemo(() => {
     const items: Array<
-      | { type: "message"; data: Message; timestamp: number }
-      | { type: "component"; data: A2UIComponentState; timestamp: number }
+      | { type: "message"; data: Message; timestamp: number; components: A2UIComponentState[] }
     > = [];
 
-    // Add messages
+    // Group components by the message they should appear after
+    // Components go after the most recent message at time of creation
+    const componentsByMessage = new Map<number, A2UIComponentState[]>();
+    
+    components.forEach((comp) => {
+      const compTime = comp.timestamp || Date.now();
+      
+      // Find the most recent message before this component
+      let messageIndex = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].timestamp.getTime() <= compTime) {
+          messageIndex = i;
+          break;
+        }
+      }
+      
+      if (messageIndex >= 0) {
+        const msgTime = messages[messageIndex].timestamp.getTime();
+        if (!componentsByMessage.has(msgTime)) {
+          componentsByMessage.set(msgTime, []);
+        }
+        componentsByMessage.get(msgTime)!.push(comp);
+      } else {
+        // Component before any message - attach to first message if exists
+        if (messages.length > 0) {
+          const firstMsgTime = messages[0].timestamp.getTime();
+          if (!componentsByMessage.has(firstMsgTime)) {
+            componentsByMessage.set(firstMsgTime, []);
+          }
+          componentsByMessage.get(firstMsgTime)!.push(comp);
+        }
+      }
+    });
+
+    // Add messages with their associated components
     messages.forEach((msg) => {
+      const msgTime = msg.timestamp.getTime();
+      const comps = componentsByMessage.get(msgTime) || [];
+      
       items.push({
         type: "message",
         data: msg,
-        timestamp: msg.timestamp.getTime(),
+        timestamp: msgTime,
+        components: comps,
       });
     });
-
-    // Add components
-    components.forEach((comp) => {
-      items.push({
-        type: "component",
-        data: comp,
-        timestamp: comp.timestamp || Date.now(),
-      });
-    });
-
-    // Sort by timestamp
-    items.sort((a, b) => a.timestamp - b.timestamp);
 
     return items;
   }, [messages, components]);
@@ -231,44 +256,51 @@ export function Chat() {
             </div>
           </div>
         ) : (
-          timeline.map((item, index) =>
-            item.type === "message" ? (
-              <ChatMessage key={item.data.id} message={item.data} />
-            ) : (
-              <div key={item.data.id} className="my-4">
-                <DynamicComponent
-                  component={item.data}
-                  onAction={(event) => {
-                    // Handle component actions with toast feedback
-                    fetch("/api/a2ui/action", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(event),
-                    })
-                      .then((res) => {
-                        if (res.ok) {
-                          showToast({
-                            type: "success",
-                            message: "Action completed successfully",
-                            duration: 2000,
+          timeline.map((item) => (
+            <div key={item.data.id}>
+              {/* Message */}
+              <ChatMessage message={item.data} />
+              
+              {/* Components associated with this message */}
+              {item.components.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  {item.components.map((component) => (
+                    <DynamicComponent
+                      key={component.id}
+                      component={component}
+                      onAction={(event) => {
+                        // Handle component actions with toast feedback
+                        fetch("/api/a2ui/action", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(event),
+                        })
+                          .then((res) => {
+                            if (res.ok) {
+                              showToast({
+                                type: "success",
+                                message: "Action completed successfully",
+                                duration: 2000,
+                              });
+                            } else {
+                              throw new Error("Action failed");
+                            }
+                          })
+                          .catch((err) => {
+                            showToast({
+                              type: "error",
+                              title: "Action failed",
+                              message: err.message || "Failed to process action",
+                              duration: 3000,
+                            });
                           });
-                        } else {
-                          throw new Error("Action failed");
-                        }
-                      })
-                      .catch((err) => {
-                        showToast({
-                          type: "error",
-                          title: "Action failed",
-                          message: err.message || "Failed to process action",
-                          duration: 3000,
-                        });
-                      });
-                  }}
-                />
-              </div>
-            )
-          )
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
