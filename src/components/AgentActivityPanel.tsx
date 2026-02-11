@@ -151,17 +151,22 @@ export function AgentActivityPanel({ isOpen }: AgentActivityPanelProps) {
 }
 
 function ActivityItem({ activity }: { activity: A2UIActivity }) {
-  const StatusIcon = {
+  const statusIcons = {
     active: Loader2,
     completed: CheckCircle,
     failed: XCircle,
-  }[activity.status];
-
-  const statusColor = {
+    pending: Loader2,
+  };
+  
+  const statusColors = {
     active: "text-blue-500",
     completed: "text-green-500",
     failed: "text-red-500",
-  }[activity.status];
+    pending: "text-gray-400",
+  };
+
+  const StatusIcon = statusIcons[activity.status] || Loader2;
+  const statusColor = statusColors[activity.status] || "text-gray-400";
 
   return (
     <div className="glass-card p-3 space-y-2">
