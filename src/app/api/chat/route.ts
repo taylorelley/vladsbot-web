@@ -3,6 +3,27 @@ import { NextRequest } from "next/server";
 
 const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || "http://localhost:18789";
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || "";
+const BASE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+
+// Helper to push activity updates
+async function pushActivity(activity: {
+  id: string;
+  type: string;
+  status: string;
+  title: string;
+  description?: string;
+  progress?: number;
+}) {
+  try {
+    await fetch(`${BASE_URL}/api/a2ui/activities`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activity }),
+    });
+  } catch (err) {
+    console.error("Failed to push activity:", err);
+  }
+}
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -55,8 +76,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Forward SSE stream
+    // Forward SSE stream with activity tracking
     const encoder = new TextEncoder();
+    const requestId = `chat-${Date.now()}`;
+    let activeToolCalls = new Map<string, string>();
+
+    // Push initial "thinking" activity
+    await pushActivity({
+      id: requestId,
+      type: "thinking",
+      status: "active",
+      title: "Processing your message...",
+    });
+
     const stream = new ReadableStream({
       async start(controller) {
         const reader = response.body?.getReader();
@@ -81,11 +113,47 @@ export async function POST(request: NextRequest) {
               if (line.startsWith("data: ")) {
                 const data = line.slice(6);
                 if (data === "[DONE]") {
+                  // Mark thinking as complete
+                  await pushActivity({
+                    id: requestId,
+                    type: "thinking",
+                    status: "completed",
+                    title: "Response complete",
+                  });
                   controller.enqueue(encoder.encode("data: [DONE]\n\n"));
                   continue;
                 }
                 try {
                   const parsed = JSON.parse(data);
+
+                  // Track tool calls
+                  if (parsed.type === "response.function_call_arguments.delta") {
+                    const toolId = parsed.call_id || "tool-1";
+                    const toolName = parsed.name || "tool";
+                    
+                    if (!activeToolCalls.has(toolId)) {
+                      activeToolCalls.set(toolId, toolName);
+                      await pushActivity({
+                        id: `tool-${toolId}`,
+                        type: "tool_call",
+                        status: "active",
+                        title: `Executing: ${toolName}`,
+                        description: "Processing...",
+                      });
+                    }
+                  } else if (parsed.type === "response.function_call_arguments.done") {
+                    const toolId = parsed.call_id || "tool-1";
+                    const toolName = activeToolCalls.get(toolId) || "tool";
+                    
+                    await pushActivity({
+                      id: `tool-${toolId}`,
+                      type: "tool_call",
+                      status: "completed",
+                      title: `${toolName} ✓`,
+                    });
+                    activeToolCalls.delete(toolId);
+                  }
+
                   // Extract text delta from OpenResponses format
                   if (parsed.type === "response.output_text.delta" && parsed.delta) {
                     controller.enqueue(
@@ -102,6 +170,13 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error("Stream error:", error);
+          await pushActivity({
+            id: requestId,
+            type: "status",
+            status: "failed",
+            title: "Error processing message",
+            description: String(error),
+          });
         } finally {
           controller.close();
         }

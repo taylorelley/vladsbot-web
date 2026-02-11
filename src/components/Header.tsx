@@ -3,13 +3,8 @@
 import { signOut, useSession } from "next-auth/react";
 import { Bot, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StatusToggle } from "./StatusSidebar";
 
-interface HeaderProps {
-  onToggleStatus?: () => void;
-}
-
-export function Header({ onToggleStatus }: HeaderProps) {
+export function Header() {
   const { data: session } = useSession();
 
   return (
@@ -27,7 +22,6 @@ export function Header({ onToggleStatus }: HeaderProps) {
 
         {session?.user && (
           <div className="flex items-center gap-3">
-            {onToggleStatus && <StatusToggle onClick={onToggleStatus} />}
             <div className="flex items-center gap-2 text-sm">
               {session.user.image ? (
                 <img

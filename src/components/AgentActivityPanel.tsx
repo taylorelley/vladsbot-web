@@ -2,8 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { A2UIActivity } from "@/types/a2ui";
-import { Zap, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Zap, CheckCircle, XCircle, Loader2, ChevronDown, ChevronUp, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface SessionStatus {
+  mainSession: {
+    model: string;
+    contextPercent: number;
+    contextUsed: number;
+    contextTotal: number;
+    thinking: string;
+    compactions: number;
+  };
+}
 
 interface AgentActivityPanelProps {
   isOpen: boolean;
@@ -12,23 +23,32 @@ interface AgentActivityPanelProps {
 
 export function AgentActivityPanel({ isOpen, onToggle }: AgentActivityPanelProps) {
   const [activities, setActivities] = useState<A2UIActivity[]>([]);
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null);
 
   useEffect(() => {
-    // Poll for activity updates every 2 seconds
-    const fetchActivities = async () => {
+    // Poll for activity updates and session status every 2 seconds
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/a2ui/activities');
-        if (response.ok) {
-          const data = await response.json();
+        // Fetch activities
+        const activitiesRes = await fetch('/api/a2ui/activities');
+        if (activitiesRes.ok) {
+          const data = await activitiesRes.json();
           setActivities(data.activities || []);
         }
+
+        // Fetch session status
+        const statusRes = await fetch('/api/status');
+        if (statusRes.ok) {
+          const status = await statusRes.json();
+          setSessionStatus(status);
+        }
       } catch (err) {
-        console.error('Failed to fetch activities:', err);
+        console.error('Failed to fetch data:', err);
       }
     };
 
-    fetchActivities(); // Initial fetch
-    const interval = setInterval(fetchActivities, 2000);
+    fetchData(); // Initial fetch
+    const interval = setInterval(fetchData, 2000);
 
     return () => clearInterval(interval);
   }, []);
@@ -60,23 +80,87 @@ export function AgentActivityPanel({ isOpen, onToggle }: AgentActivityPanelProps
 
       {/* Activity Panel */}
       {isOpen && (
-        <div className="glass-card p-4 max-h-96 overflow-y-auto">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
-            Agent Activity
-          </h3>
+        <div className="glass-card p-4 max-h-[32rem] overflow-y-auto space-y-4">
+          {/* Session Status Header */}
+          {sessionStatus && (
+            <div className="space-y-3 pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-primary" />
+                <h3 className="font-semibold text-sm">Main Session</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {sessionStatus.mainSession.model}
+                </p>
 
-          {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No active tasks
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {activities.map((activity) => (
-                <ActivityItem key={activity.id} activity={activity} />
-              ))}
+                {/* Context Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Context</span>
+                    <span className="font-mono">
+                      {sessionStatus.mainSession.contextPercent}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-black/30 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full transition-all duration-500 rounded-full",
+                        sessionStatus.mainSession.contextPercent < 50
+                          ? "bg-green-500"
+                          : sessionStatus.mainSession.contextPercent < 75
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                      )}
+                      style={{
+                        width: `${sessionStatus.mainSession.contextPercent}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {Math.round(sessionStatus.mainSession.contextUsed / 1000)}k /{" "}
+                    {Math.round(sessionStatus.mainSession.contextTotal / 1000)}k tokens
+                  </p>
+                </div>
+
+                {/* Metrics */}
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Thinking: </span>
+                    <span className="font-medium capitalize">
+                      {sessionStatus.mainSession.thinking}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Compactions: </span>
+                    <span className="font-medium">
+                      {sessionStatus.mainSession.compactions}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Activities Section */}
+          <div>
+            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              Agent Activity
+            </h3>
+
+            {activities.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No active tasks
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {activities.map((activity) => (
+                  <ActivityItem key={activity.id} activity={activity} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
