@@ -6,11 +6,13 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Chat } from "@/components/Chat";
 import { StatusSidebar } from "@/components/StatusSidebar";
+import { AgentActivityPanel } from "@/components/AgentActivityPanel";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isStatusPinned, setIsStatusPinned] = useState(false);
+  const [isActivityOpen, setIsActivityOpen] = useState(true); // Default open for demo
 
   // Load pinned state from localStorage on mount
   useEffect(() => {
@@ -61,6 +63,10 @@ export default function HomePage() {
         onClose={() => setIsStatusOpen(false)}
         isPinned={isStatusPinned}
         onTogglePin={handleTogglePin}
+      />
+      <AgentActivityPanel
+        isOpen={isActivityOpen}
+        onToggle={() => setIsActivityOpen(!isActivityOpen)}
       />
     </main>
   );
