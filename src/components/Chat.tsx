@@ -77,7 +77,14 @@ export function Chat() {
       | { type: "message"; data: Message; timestamp: number; components: A2UIComponentState[] }
     > = [];
 
-    // Find the last assistant message that might be streaming
+    if (messages.length === 0) {
+      return items;
+    }
+
+    // Build component assignments - each component assigned to exactly ONE message
+    const componentAssignments = new Map<string, number>(); // component.id -> message timestamp
+    
+    // Find the last assistant message
     let lastAssistantIndex = -1;
     let lastAssistantTime = 0;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -87,45 +94,51 @@ export function Chat() {
         break;
       }
     }
-
-    // Group components by the message they belong to
-    const componentsByMessage = new Map<number, A2UIComponentState[]>();
-    const assignedComponents = new Set<string>(); // Track which components are assigned
     
+    // Assign each component to exactly one message
     components.forEach((comp) => {
       const compTime = comp.timestamp || Date.now();
+      let assignedMsgTime: number;
       
-      // If there's a streaming/recent assistant message and this component was created after it,
-      // attach to the assistant message (it's part of the response)
+      // If there's a recent assistant message and this component was created during or after it,
+      // assign to that assistant message (part of the current response)
       if (lastAssistantIndex >= 0 && compTime >= lastAssistantTime) {
-        if (!componentsByMessage.has(lastAssistantTime)) {
-          componentsByMessage.set(lastAssistantTime, []);
-        }
-        componentsByMessage.get(lastAssistantTime)!.push(comp);
-        assignedComponents.add(comp.id);
-      } else if (!assignedComponents.has(comp.id)) {
-        // Only assign to an older message if not already assigned
-        // Find the most recent completed message before this component
-        let messageIndex = -1;
+        assignedMsgTime = lastAssistantTime;
+      } else {
+        // Find the most recent message at or before this component's creation
+        let foundIndex = -1;
         for (let i = messages.length - 1; i >= 0; i--) {
           if (messages[i].timestamp.getTime() <= compTime) {
-            messageIndex = i;
+            foundIndex = i;
             break;
           }
         }
         
-        if (messageIndex >= 0) {
-          const msgTime = messages[messageIndex].timestamp.getTime();
-          if (!componentsByMessage.has(msgTime)) {
-            componentsByMessage.set(msgTime, []);
-          }
-          componentsByMessage.get(msgTime)!.push(comp);
-          assignedComponents.add(comp.id);
+        if (foundIndex >= 0) {
+          assignedMsgTime = messages[foundIndex].timestamp.getTime();
+        } else {
+          // Component created before any message - skip it
+          return;
         }
+      }
+      
+      // Store the assignment
+      componentAssignments.set(comp.id, assignedMsgTime);
+    });
+
+    // Group components by their assigned message
+    const componentsByMessage = new Map<number, A2UIComponentState[]>();
+    components.forEach((comp) => {
+      const assignedTime = componentAssignments.get(comp.id);
+      if (assignedTime !== undefined) {
+        if (!componentsByMessage.has(assignedTime)) {
+          componentsByMessage.set(assignedTime, []);
+        }
+        componentsByMessage.get(assignedTime)!.push(comp);
       }
     });
 
-    // Add messages with their associated components
+    // Build timeline: message + its components
     messages.forEach((msg) => {
       const msgTime = msg.timestamp.getTime();
       const comps = componentsByMessage.get(msgTime) || [];
