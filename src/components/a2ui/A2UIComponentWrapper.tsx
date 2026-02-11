@@ -8,7 +8,7 @@ import {
   A2UIActionEvent,
   A2UIVariant 
 } from "@/types/a2ui";
-import { X, ChevronDown, ChevronUp } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 // ============================================================
 // Types
@@ -170,6 +170,14 @@ export function A2UIActionButton({
   size = "md",
 }: A2UIActionButtonProps) {
   const variant = action.variant || "secondary";
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = () => {
+    setIsLoading(true);
+    onClick(action.action);
+    // Reset after 2 seconds
+    setTimeout(() => setIsLoading(false), 2000);
+  };
 
   const sizeStyles = {
     sm: "px-2 py-1 text-xs",
@@ -190,18 +198,22 @@ export function A2UIActionButton({
 
   return (
     <button
-      onClick={() => onClick(action.action)}
-      disabled={action.disabled}
+      onClick={handleClick}
+      disabled={action.disabled || isLoading}
       title={action.tooltip}
       className={cn(
-        "rounded-lg font-medium transition-all duration-200",
+        "rounded-lg font-medium transition-all duration-200 flex items-center gap-1.5",
         "disabled:opacity-50 disabled:cursor-not-allowed",
         sizeStyles[size],
         buttonVariants[variant]
       )}
     >
-      {action.icon && <span className="mr-1">{action.icon}</span>}
-      {action.label}
+      {isLoading ? (
+        <Loader2 className="w-3 h-3 animate-spin" />
+      ) : (
+        action.icon && <span>{action.icon}</span>
+      )}
+      <span>{action.label}</span>
     </button>
   );
 }

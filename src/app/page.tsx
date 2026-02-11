@@ -7,6 +7,7 @@ import { Header } from "@/components/Header";
 import { Chat } from "@/components/Chat";
 import { A2UISidebar } from "@/components/a2ui/A2UISidebar";
 import { FloatingA2UI } from "@/components/a2ui/A2UIRenderer";
+import { ToastContainer } from "@/components/a2ui/Toast";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
@@ -61,6 +62,8 @@ export default function HomePage() {
       </div>
       {/* Floating A2UI Components */}
       <FloatingA2UI />
+      {/* Toast Notifications */}
+      <ToastContainer />
     </main>
   );
 }

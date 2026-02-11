@@ -9,6 +9,7 @@ import {
   A2UISSEMessage,
 } from "@/types/a2ui";
 import { DynamicComponent } from "./A2UIRegistry";
+import { showToast } from "./Toast";
 
 // Import all components to ensure they're registered
 import "./Card";
@@ -45,12 +46,39 @@ export function A2UIRenderer({ location, className, onAction }: A2UIRendererProp
   // Handle incoming action and forward to parent
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
+      // Show immediate feedback toast
+      showToast({
+        type: "success",
+        title: "Action received",
+        message: `Processing: ${event.action}`,
+        duration: 2000,
+      });
+
       // Send action to backend
       fetch("/api/a2ui/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(event),
-      }).catch(console.error);
+      })
+        .then((res) => {
+          if (res.ok) {
+            showToast({
+              type: "success",
+              message: "Action completed successfully",
+              duration: 2000,
+            });
+          } else {
+            throw new Error("Action failed");
+          }
+        })
+        .catch((err) => {
+          showToast({
+            type: "error",
+            title: "Action failed",
+            message: err.message || "Failed to process action",
+            duration: 3000,
+          });
+        });
 
       // Forward to parent handler
       onAction?.(event);
@@ -184,6 +212,14 @@ interface ChatA2UIProps {
 export function ChatA2UI({ messageId, components, className, onAction }: ChatA2UIProps) {
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
+      // Show immediate feedback toast
+      showToast({
+        type: "success",
+        title: "Action received",
+        message: `Processing: ${event.action}`,
+        duration: 2000,
+      });
+
       // Send action to backend
       fetch("/api/a2ui/action", {
         method: "POST",
@@ -192,7 +228,26 @@ export function ChatA2UI({ messageId, components, className, onAction }: ChatA2U
           ...event,
           data: { ...event.data, messageId },
         }),
-      }).catch(console.error);
+      })
+        .then((res) => {
+          if (res.ok) {
+            showToast({
+              type: "success",
+              message: "Action completed successfully",
+              duration: 2000,
+            });
+          } else {
+            throw new Error("Action failed");
+          }
+        })
+        .catch((err) => {
+          showToast({
+            type: "error",
+            title: "Action failed",
+            message: err.message || "Failed to process action",
+            duration: 3000,
+          });
+        });
 
       // Forward to parent handler
       onAction?.(event);
@@ -251,11 +306,38 @@ export function FloatingA2UI({ className, onAction }: FloatingA2UIProps) {
 
   const handleAction = useCallback(
     (event: A2UIActionEvent) => {
+      // Show immediate feedback toast
+      showToast({
+        type: "success",
+        title: "Action received",
+        message: `Processing: ${event.action}`,
+        duration: 2000,
+      });
+
       fetch("/api/a2ui/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(event),
-      }).catch(console.error);
+      })
+        .then((res) => {
+          if (res.ok) {
+            showToast({
+              type: "success",
+              message: "Action completed successfully",
+              duration: 2000,
+            });
+          } else {
+            throw new Error("Action failed");
+          }
+        })
+        .catch((err) => {
+          showToast({
+            type: "error",
+            title: "Action failed",
+            message: err.message || "Failed to process action",
+            duration: 3000,
+          });
+        });
       onAction?.(event);
     },
     [onAction]

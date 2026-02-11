@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { cn } from "@/lib/utils";
 import { A2UIButtonGroupProps, A2UIAction, A2UIVariant } from "@/types/a2ui";
 import { A2UIComponentWrapper } from "./A2UIComponentWrapper";
 import { registerComponent, A2UIRendererProps } from "./A2UIRegistry";
+import { Loader2 } from "lucide-react";
 
 // ============================================================
 // Button Styles
@@ -81,11 +82,19 @@ interface ButtonGroupButtonProps {
 
 function ButtonGroupButton({ button, onClick, fullWidth }: ButtonGroupButtonProps) {
   const variant = button.variant || "secondary";
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = () => {
+    setIsLoading(true);
+    onClick(button.action);
+    // Reset after 2 seconds
+    setTimeout(() => setIsLoading(false), 2000);
+  };
 
   return (
     <button
-      onClick={() => onClick(button.action)}
-      disabled={button.disabled}
+      onClick={handleClick}
+      disabled={button.disabled || isLoading}
       title={button.tooltip}
       className={cn(
         "px-4 py-2 rounded-lg font-medium transition-all duration-200 border",
@@ -95,7 +104,11 @@ function ButtonGroupButton({ button, onClick, fullWidth }: ButtonGroupButtonProp
         fullWidth && "flex-1"
       )}
     >
-      {button.icon && <span>{button.icon}</span>}
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        button.icon && <span>{button.icon}</span>
+      )}
       <span>{button.label}</span>
     </button>
   );
