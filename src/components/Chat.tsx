@@ -19,6 +19,7 @@ export function Chat() {
   const [components, setComponents] = useState<A2UIComponentState[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const currentMessageIdRef = useRef<string | null>(null); // Track current assistant message
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,7 +72,7 @@ export function Chat() {
     };
   }, []);
 
-  // Create unified timeline of messages and components
+  // Create unified timeline of messages and components  
   const timeline = useMemo(() => {
     const items: Array<
       | { type: "message"; data: Message; timestamp: number; components: A2UIComponentState[] }
@@ -80,6 +81,11 @@ export function Chat() {
     if (messages.length === 0) {
       return items;
     }
+
+    // Deduplicate components first - keep only unique IDs
+    const uniqueComponents = Array.from(
+      new Map(components.map(c => [c.id, c])).values()
+    );
 
     // Build component assignments - each component assigned to exactly ONE message
     const componentAssignments = new Map<string, number>(); // component.id -> message timestamp
@@ -96,7 +102,7 @@ export function Chat() {
     }
     
     // Assign each component to exactly one message
-    components.forEach((comp) => {
+    uniqueComponents.forEach((comp) => {
       const compTime = comp.timestamp || Date.now();
       let assignedMsgTime: number;
       
@@ -128,7 +134,7 @@ export function Chat() {
 
     // Group components by their assigned message
     const componentsByMessage = new Map<number, A2UIComponentState[]>();
-    components.forEach((comp) => {
+    uniqueComponents.forEach((comp) => {
       const assignedTime = componentAssignments.get(comp.id);
       if (assignedTime !== undefined) {
         if (!componentsByMessage.has(assignedTime)) {
@@ -291,7 +297,8 @@ export function Chat() {
               {/* Components associated with this message */}
               {item.components.length > 0 && (
                 <div className="space-y-4 mt-4">
-                  {item.components.map((component) => (
+                  {/* Deduplicate by component ID just in case */}
+                  {Array.from(new Map(item.components.map(c => [c.id, c])).values()).map((component) => (
                     <DynamicComponent
                       key={component.id}
                       component={component}
