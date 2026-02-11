@@ -6,10 +6,26 @@ import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Chat } from "@/components/Chat";
 import { AgentActivityPanel } from "@/components/AgentActivityPanel";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const [isActivityOpen, setIsActivityOpen] = useState(true); // Default open
+
+  // Load panel state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("activityPanelOpen");
+    if (saved !== null) {
+      setIsActivityOpen(saved === "true");
+    }
+  }, []);
+
+  // Save panel state to localStorage
+  const handleToggleActivity = () => {
+    const newState = !isActivityOpen;
+    setIsActivityOpen(newState);
+    localStorage.setItem("activityPanelOpen", String(newState));
+  };
 
   if (status === "loading") {
     return (
@@ -25,14 +41,23 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-col h-screen">
-      <Header />
-      <div className="flex-1 max-w-4xl mx-auto w-full overflow-hidden">
-        <Chat />
-      </div>
-      <AgentActivityPanel
-        isOpen={isActivityOpen}
-        onToggle={() => setIsActivityOpen(!isActivityOpen)}
+      <Header 
+        onToggleActivity={handleToggleActivity}
+        isActivityOpen={isActivityOpen}
       />
+      <div className="flex-1 flex overflow-hidden">
+        <AgentActivityPanel isOpen={isActivityOpen} />
+        <div 
+          className={cn(
+            "flex-1 transition-all duration-300 ease-in-out",
+            isActivityOpen ? "ml-80" : "ml-0"
+          )}
+        >
+          <div className="max-w-4xl mx-auto w-full h-full">
+            <Chat />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

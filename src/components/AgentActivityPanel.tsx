@@ -18,10 +18,9 @@ interface SessionStatus {
 
 interface AgentActivityPanelProps {
   isOpen: boolean;
-  onToggle: () => void;
 }
 
-export function AgentActivityPanel({ isOpen, onToggle }: AgentActivityPanelProps) {
+export function AgentActivityPanel({ isOpen }: AgentActivityPanelProps) {
   const [activities, setActivities] = useState<A2UIActivity[]>([]);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null);
 
@@ -56,31 +55,16 @@ export function AgentActivityPanel({ isOpen, onToggle }: AgentActivityPanelProps
   const activeCount = activities.filter(a => a.status === 'active').length;
 
   return (
-    <div
+    <aside
       className={cn(
-        "fixed bottom-4 right-4 z-50 transition-all duration-300",
-        isOpen ? "w-96" : "w-auto"
+        "fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 glass-panel border-y-0 border-l-0 border-r z-40",
+        "transform transition-transform duration-300 ease-in-out",
+        "flex flex-col",
+        isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
-      {/* Toggle Button */}
-      <button
-        onClick={onToggle}
-        className={cn(
-          "glass-button-secondary rounded-lg p-3 flex items-center gap-2 mb-2 ml-auto",
-          activeCount > 0 && "bg-primary/20 border-primary/50"
-        )}
-        title={isOpen ? "Hide agent activity" : "Show agent activity"}
-      >
-        <Zap className={cn("w-4 h-4", activeCount > 0 && "text-primary animate-pulse")} />
-        {activeCount > 0 && (
-          <span className="text-xs font-medium">{activeCount}</span>
-        )}
-        {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-      </button>
-
-      {/* Activity Panel */}
-      {isOpen && (
-        <div className="glass-card p-4 max-h-[32rem] overflow-y-auto space-y-4">
+      {/* Activity Panel Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Session Status Header */}
           {sessionStatus && (
             <div className="space-y-3 pb-3 border-b border-white/10">
@@ -161,9 +145,8 @@ export function AgentActivityPanel({ isOpen, onToggle }: AgentActivityPanelProps
               </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+      </div>
+    </aside>
   );
 }
 
@@ -215,5 +198,19 @@ function ActivityItem({ activity }: { activity: A2UIActivity }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Toggle button component for header
+export function AgentActivityToggle({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className="glass-button-secondary rounded-lg p-2 flex items-center gap-2"
+      title={isOpen ? "Hide activity panel" : "Show activity panel"}
+    >
+      <Zap className="w-4 h-4" />
+      {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+    </button>
   );
 }

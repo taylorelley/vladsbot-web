@@ -3,14 +3,23 @@
 import { signOut, useSession } from "next-auth/react";
 import { Bot, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgentActivityToggle } from "./AgentActivityPanel";
 
-export function Header() {
+interface HeaderProps {
+  onToggleActivity?: () => void;
+  isActivityOpen?: boolean;
+}
+
+export function Header({ onToggleActivity, isActivityOpen = false }: HeaderProps = {}) {
   const { data: session } = useSession();
 
   return (
-    <header className="glass-panel border-t-0 border-x-0 rounded-none px-4 py-3">
-      <div className="max-w-4xl mx-auto flex items-center justify-between">
+    <header className="glass-panel border-t-0 border-x-0 rounded-none px-4 py-3 relative z-50">
+      <div className="max-w-full mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
+          {onToggleActivity && (
+            <AgentActivityToggle onClick={onToggleActivity} isOpen={isActivityOpen} />
+          )}
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
             <Bot className="w-5 h-5 text-primary" />
           </div>
